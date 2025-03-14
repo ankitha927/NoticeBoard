@@ -1,4 +1,3 @@
-
 require("dotenv").config();
 const express = require("express");
 const mysql = require("mysql");
@@ -27,35 +26,43 @@ db.connect((err) => {
 
 // User Registration
 app.post("/register", async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ message: "Missing fields" });
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  db.query(
-    "INSERT INTO users (email, password) VALUES (?, ?)",
-    [email, hashedPassword],
-    (err, result) => {
-      if (err) return res.status(500).json({ message: "Database error", error: err });
-      res.json({ message: "User registered successfully" });
-    }
-  );
-});
+    const { email, password, role } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Missing fields" });
+  
+    // Default role to 'user' if not provided
+    const userRole = role === "admin" ? "admin" : "user";
+  
+    const hashedPassword = await bcrypt.hash(password, 10);
+  
+    db.query(
+      "INSERT INTO users (email, password, role) VALUES (?, ?, ?)",
+      [email, hashedPassword, userRole],
+      (err, result) => {
+        if (err) return res.status(500).json({ message: "Database error", error: err });
+        res.json({ message: "✅ User registered successfully" });
+      }
+    );
+  });
+  
 
 // User Login
 app.post("/login", (req, res) => {
-  const { email, password } = req.body;
-  db.query("SELECT * FROM users WHERE email = ?", [email], async (err, results) => {
-    if (err) return res.status(500).json({ message: "Database error", error: err });
-    if (results.length === 0) return res.status(401).json({ message: "User not found" });
-
-    const isMatch = await bcrypt.compare(password, results[0].password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
-
-    const token = jwt.sign({ userId: results[0].id }, "secret_key", { expiresIn: "1h" });
-    res.json({ message: "Login successful", token });
+    const { email, password } = req.body;
+  
+    db.query("SELECT * FROM users WHERE email = ?", [email], async (err, results) => {
+      if (err) return res.status(500).json({ message: "Database error", error: err });
+      if (results.length === 0) return res.status(401).json({ message: "User not found" });
+  
+      const user = results[0];
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+  
+      const token = jwt.sign({ userId: user.id, role: user.role }, "secret_key", { expiresIn: "1h" });
+  
+      res.json({ message: "✅ Login successful", token, role: user.role });
+    });
   });
-});
+  
 
 // Fetch Notices
 app.get("/notices", (req, res) => {

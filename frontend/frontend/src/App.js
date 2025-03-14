@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { fetchNotices, addNotice } from "./api";
+import "./styles.css"; // Importing the CSS file
 
 function App() {
   const [notices, setNotices] = useState([]);
@@ -20,13 +21,13 @@ function App() {
       await addNotice(title, content);
       setTitle("");
       setContent("");
-      loadNotices(); // Refresh the list
+      loadNotices();
     }
   };
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial" }}>
-      <h2>📢 Digital Notice Board</h2>
+    <div className="container">
+      <h1> Digital Notice Board</h1>
 
       <div>
         <input
