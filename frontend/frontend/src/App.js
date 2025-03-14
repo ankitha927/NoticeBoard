@@ -1,58 +1,77 @@
-import React, { useEffect, useState } from "react";
-import { fetchNotices, addNotice } from "./api";
-import "./styles.css"; // Importing the CSS file
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./styles.css";
 
 function App() {
-  const [notices, setNotices] = useState([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [notices, setNotices] = useState([]);
 
+  // Fetch notices on page load
   useEffect(() => {
-    loadNotices();
+    fetchNotices();
   }, []);
 
-  const loadNotices = async () => {
-    const data = await fetchNotices();
-    setNotices(data);
+  const fetchNotices = async () => {
+    try {
+      const response = await axios.get("http://localhost:5000/notices");
+      setNotices(response.data);
+    } catch (error) {
+      console.error("Error fetching notices:", error);
+    }
   };
 
   const handleAddNotice = async () => {
-    if (title && content) {
-      await addNotice(title, content);
+    if (!title || !content) {
+      alert("Please fill in all fields.");
+      return;
+    }
+
+    try {
+      await axios.post("http://localhost:5000/notices", { title, content });
+      fetchNotices(); // Refresh the notices list
       setTitle("");
       setContent("");
-      loadNotices();
+    } catch (error) {
+      console.error("Error adding notice:", error);
+    }
+  };
+
+  // ✅ Function to delete a notice
+  const handleDeleteNotice = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/notices/${id}`);
+      setNotices(notices.filter(notice => notice.id !== id)); // Update UI
+    } catch (error) {
+      console.error("Error deleting notice:", error);
     }
   };
 
   return (
     <div className="container">
-      <h1> Digital Notice Board</h1>
+      <h1>Digital Notice Board</h1>
+      <input
+        type="text"
+        placeholder="Enter title"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      />
+      <textarea
+        placeholder="Enter content"
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+      />
+      <button onClick={handleAddNotice}>Add Notice</button>
 
-      <div>
-        <input
-          type="text"
-          placeholder="Enter title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Enter content"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-        />
-        <button onClick={handleAddNotice}>Add Notice</button>
-      </div>
-
-      <h3>All Notices:</h3>
-      <ul>
+      <h2>All Notices:</h2>
+      <div className="notice-list">
         {notices.map((notice) => (
-          <li key={notice.id}>
+          <div key={notice.id} className="notice-item">
             <strong>{notice.title}</strong>: {notice.content}
-          </li>
+            <button className="delete-btn" onClick={() => handleDeleteNotice(notice.id)}>🗑 Delete</button>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
